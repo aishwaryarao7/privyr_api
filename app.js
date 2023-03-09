@@ -73,8 +73,10 @@ function decryptData(encrypted, iv, key) {
   return decrypted.toString(CryptoJS.enc.Utf8);
 }
 
-app.get("/", (req, res) => {
-  res.send("Welcome");
+app.get("/find/:id", async (req, res) => {
+  const id = req.params.id;
+  const user_details = await userModel.findOne({ userId: id });
+  res.send(user_details);
 });
 
 app.post("/data/:id", async (req, res) => {
