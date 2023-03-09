@@ -4,12 +4,14 @@ const mongoose = require("mongoose");
 const { userModel } = require("./models/userModel");
 const websocketServer = require("websocket").server;
 const { w3cwebsocket: W3CWebSocket } = require("websocket");
+var CryptoJS = require("crypto-js");
 
 const http = require("http");
 
 const app = express();
 const PORT = 3100;
 const websocketServerPort = 8000;
+const salt = "privyrtest";
 
 const server = http.createServer();
 server.listen(websocketServerPort);
@@ -62,13 +64,27 @@ wsServer.on("request", function (request) {
   });
 });
 
+function decryptData(encrypted, iv, key) {
+  var decrypted = CryptoJS.AES.decrypt(encrypted, key, {
+    iv: iv,
+    mode: CryptoJS.mode.CBC,
+    padding: CryptoJS.pad.Pkcs7,
+  });
+  return decrypted.toString(CryptoJS.enc.Utf8);
+}
+
 app.get("/", (req, res) => {
   res.send("Welcome");
 });
 
 app.post("/data/:id", async (req, res) => {
   let data = req.body;
-  const user_id = req.params.id;
+  const id = req.params.id;
+  var iv = CryptoJS.enc.Base64.parse("");
+  var key = CryptoJS.SHA256(salt);
+
+  var user_id = decryptData(id, iv, key);
+
   let userDetailsRecord = await userModel.findOne({ userId: user_id });
 
   let userData;
