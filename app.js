@@ -76,12 +76,13 @@ function decryptData(encrypted, iv, key) {
 app.get("/find/:id", async (req, res) => {
   const id = req.params.id;
   const user_details = await userModel.findOne({ userId: id });
+  res.set("Access-Control-Allow-Origin", "*");
   res.send(user_details);
 });
 
 app.post("/data/:id", async (req, res) => {
   let data = req.body;
-  const id = req.params.id;
+  const id = req.params.id.replace("Por21Ld", "/");
   var iv = CryptoJS.enc.Base64.parse("");
   var key = CryptoJS.SHA256(salt);
 
