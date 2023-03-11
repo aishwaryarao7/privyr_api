@@ -17,7 +17,7 @@ const server = http.createServer();
 server.listen(websocketServerPort);
 console.log("listening on port 8000");
 
-const client = new W3CWebSocket("ws://127.0.0.1:8000");
+const client = new W3CWebSocket("ws://0.0.0.0:8000");
 const wsServer = new websocketServer({
   httpServer: server,
 });
