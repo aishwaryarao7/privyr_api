@@ -1,5 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+var payloadChecker = require("payload-validator");
 const mongoose = require("mongoose");
 const { userModel } = require("./models/userModel");
 const websocketServer = require("websocket").server;
@@ -12,6 +13,12 @@ const app = express();
 const PORT = 3100;
 const websocketServerPort = 8000;
 const salt = "privyrtest";
+var expectedPayload = {
+  name: "",
+  email: "",
+  phone: 0,
+  other_fields: {},
+};
 
 const server = http.createServer();
 server.listen(websocketServerPort);
@@ -83,55 +90,66 @@ app.get("/find/:id", async (req, res) => {
 app.post("/data/:id", async (req, res) => {
   let data = req.body;
   const id = req.params.id.replace("Por21Ld", "/");
-  var iv = CryptoJS.enc.Base64.parse("");
-  var key = CryptoJS.SHA256(salt);
 
-  var user_id = decryptData(id, iv, key);
-
-  let userDetailsRecord = await userModel.findOne({ userId: user_id });
-
-  let userData;
-  if (userDetailsRecord) {
-    if (userDetailsRecord.data == null) {
-      userDetailsRecord.data = [];
-    }
-    userDetailsRecord.data.push({
-      name: data.name,
-      email: data.email,
-      phone: data.phone,
-      other_fields: data.other_fields,
-    });
-
-    userData = await userModel.findOneAndUpdate(
-      { userId: userDetailsRecord.userId },
-      userDetailsRecord,
-      { returnOriginal: false }
-    );
-  } else {
-    userDetailsRecord = new userModel({
-      userId: user_id,
-      data: [
-        {
-          name: data.name,
-          email: data.email,
-          phone: data.phone,
-          other_fields: data.other_fields,
-        },
-      ],
-    });
-    userData = await userDetailsRecord.save();
-  }
-
-  client.send(
-    JSON.stringify({
-      type: "message",
-      msg: userData,
-    })
+  var result = payloadChecker.validator(
+    req.body,
+    expectedPayload,
+    ["name", "email", "phone"],
+    false
   );
+  if (result.success) {
+    var iv = CryptoJS.enc.Base64.parse("");
+    var key = CryptoJS.SHA256(salt);
 
-  res.send({
-    result: "added succesfully: " + data.name,
-  });
+    var user_id = decryptData(id, iv, key);
+
+    let userDetailsRecord = await userModel.findOne({ userId: user_id });
+
+    let userData;
+    if (userDetailsRecord) {
+      if (userDetailsRecord.data == null) {
+        userDetailsRecord.data = [];
+      }
+      userDetailsRecord.data.push({
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        other_fields: data.other_fields,
+      });
+
+      userData = await userModel.findOneAndUpdate(
+        { userId: userDetailsRecord.userId },
+        userDetailsRecord,
+        { returnOriginal: false }
+      );
+    } else {
+      userDetailsRecord = new userModel({
+        userId: user_id,
+        data: [
+          {
+            name: data.name,
+            email: data.email,
+            phone: data.phone,
+            other_fields: data.other_fields,
+          },
+        ],
+      });
+      userData = await userDetailsRecord.save();
+    }
+
+    client.send(
+      JSON.stringify({
+        type: "message",
+        msg: userData,
+      })
+    );
+
+    res.send({
+      result: "added succesfully: " + data.name,
+    });
+  } else {
+    res.json({ message: result.response.errorMessage });
+  }
 });
 
 app.listen(PORT, () => {
