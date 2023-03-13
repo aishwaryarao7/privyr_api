@@ -16,7 +16,7 @@ const salt = "privyrtest";
 var expectedPayload = {
   name: "",
   email: "",
-  phone: 0,
+  phone: "",
   other_fields: {},
 };
 
